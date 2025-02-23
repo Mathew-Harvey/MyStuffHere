@@ -1,0 +1,93 @@
+body {
+    background: linear-gradient(135deg, #1a1a1a, #2a4066, #4a2555);
+    background-size: 200% 200%;
+    animation: bgGradient 10s ease infinite;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    display: grid;
+    place-items: center;
+    height: 100vh;
+    overflow: hidden;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>') 12 12, auto; /* Default custom cursor */
+}
+
+@keyframes bgGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.swiper {
+    width: 80%;
+    margin: 0 auto;
+    padding: 50px 0;
+    height: 600px;
+}
+
+.swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 400px;
+    height: 600px;
+    transition: transform 0.3s ease, filter 0.3s ease; /* Smooth hover transition */
+}
+
+.card {
+    position: relative; /* For absolute positioning of text */
+    height: 600px;
+    width: 400px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8), 0 15px 40px rgba(0, 0, 0, 0.5); /* Enhanced, deeper shadows */
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth hover animation */
+}
+
+.card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Full card coverage */
+    transition: opacity 0.3s ease; /* For subtle fade effect */
+}
+
+.card p {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 15px;
+    font-size: 1.2rem;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease; /* Smooth text appearance */
+}
+
+.swiper-slide:hover .card {
+    transform: translateY(-10px) scale(1.05); /* Pop effect */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9), 0 25px 60px rgba(0, 0, 0, 0.6); /* More dramatic shadow on hover */
+}
+
+.swiper-slide:hover .card img {
+    opacity: 0.9; /* Slight dimming for contrast with text */
+}
+
+.swiper-slide:hover .card p {
+    opacity: 1; /* Show title on hover */
+}
+
+.swiper-slide:hover {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="cyan" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>') 12 12, auto; /* Custom clickable cursor */
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+    color: white;
+}
