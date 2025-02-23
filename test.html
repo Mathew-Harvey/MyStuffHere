@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Man Builds a Path</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #ccc; /* Matches pixel art background */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #man {
+            position: absolute;
+            width: 160px; /* 16px * 10 scale */
+            height: 240px; /* 24px * 10 scale */
+            left: 0;
+            bottom: 0;
+            image-rendering: pixelated; /* Keeps pixel art crisp */
+        }
+
+        #brick-pile {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-color: #8b4513; /* Brown for bricks */
+            bottom: 0;
+            left: 200px; /* Positioned to the right of the man */
+            border: 2px solid #5a2e0b; /* Darker outline */
+        }
+
+        #path {
+            position: absolute;
+            width: 0; /* Starts empty */
+            height: 40px; /* Half the brick pile height */
+            background-color: #8b4513;
+            bottom: 0;
+            left: 0;
+            transition: width 0.1s ease; /* Smooth but quick growth */
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <img id="man" src="pixel_art_frames/man_standing_neutral.png" alt="Man">
+        <div id="brick-pile"></div>
+        <div id="path"></div>
+    </div>
+    <script>
+        // Asset paths (adjust these to your actual file locations)
+        const assets = {
+            standing_neutral: 'pixel_art_frames/man_standing_neutral.png',
+            standing_happy: 'pixel_art_frames/man_standing_happy.png',
+            standing_angry: 'pixel_art_frames/man_standing_angry.png',
+            standing_sad: 'pixel_art_frames/man_standing_sad.png',
+            standing_frustrated: 'pixel_art_frames/man_standing_frustrated.png',
+            standing_satisfied: 'pixel_art_frames/man_standing_satisfied.png',
+            walking1: 'pixel_art_frames/man_walking1.png',
+            walking2: 'pixel_art_frames/man_walking2.png',
+            bending: 'pixel_art_frames/man_bending.png',
+            holding: 'pixel_art_frames/man_holding.png',
+            dropping: 'pixel_art_frames/man_dropping.png'
+        };
+
+        // Elements
+        const man = document.getElementById('man');
+        const brickPile = document.getElementById('brick-pile');
+        const path = document.getElementById('path');
+
+        // Animation states
+        let manX = 0; // Starting position (left edge)
+        const brickPileX = 200; // Brick pile position
+        const walkSpeed = 2; // Pixels per frame
+        const windowWidth = window.innerWidth;
+        let pathWidth = 0;
+        const brickWidth = 40; // Width of each "brick" in the path
+        let bricksNeeded = Math.ceil(windowWidth / brickWidth);
+
+        // Walking animation
+        function animateWalk() {
+            let frame = 0;
+            return setInterval(() => {
+                man.src = (frame % 2 === 0) ? assets.walking1 : assets.walking2;
+                frame++;
+            }, 200); // Switch frames every 200ms
+        }
+
+        // Move man to a target X position
+        function moveTo(targetX, callback) {
+            const walkInterval = animateWalk();
+            const moveInterval = setInterval(() => {
+                if (manX < targetX) {
+                    manX += walkSpeed;
+                    if (manX >= targetX) manX = targetX;
+                } else if (manX > targetX) {
+                    manX -= walkSpeed;
+                    if (manX <= targetX) manX = targetX;
+                }
+                man.style.left = `${manX}px`;
+                if (manX === targetX) {
+                    clearInterval(moveInterval);
+                    clearInterval(walkInterval);
+                    man.src = assets.standing_neutral; // Default to neutral when stopped
+                    callback();
+                }
+            }, 16); // ~60fps
+        }
+
+        // Animation sequence: Pick up and place one brick at the end of the path
+        function placeBrick(brickNumber) {
+            // Step 1: Walk to brick pile
+            moveTo(brickPileX - 160, () => {
+                // Step 2: Bend to pick up brick
+                man.src = assets.bending;
+                setTimeout(() => {
+                    man.src = assets.holding;
+                    setTimeout(() => {
+                        // Step 3: Walk to the end of the current path
+                        const targetX = pathWidth; // Place brick at the end
+                        moveTo(targetX, () => {
+                            // Step 4: Place brick
+                            man.src = assets.dropping;
+                            setTimeout(() => {
+                                pathWidth += brickWidth; // Extend path by one brick
+                                path.style.width = `${pathWidth}px`;
+                                man.src = assets.standing_neutral;
+                                if (pathWidth < windowWidth) {
+                                    // Return to pile for next brick
+                                    moveTo(brickPileX - 160, () => placeBrick(brickNumber + 1));
+                                } else {
+                                    // Hide brick pile and start random walking
+                                    brickPile.style.display = 'none';
+                                    path.style.width = `${windowWidth}px`; // Ensure full width
+                                    randomWalkAndEmote();
+                                }
+                            }, 500); // Drop for 500ms
+                        });
+                    }, 500); // Hold for 500ms
+                }, 500); // Bend for 500ms
+            });
+        }
+
+        // Random walking and emotions
+        function randomWalkAndEmote() {
+            const emotions = [
+                'standing_neutral', 'standing_happy', 'standing_angry',
+                'standing_sad', 'standing_frustrated', 'standing_satisfied'
+            ];
+            const getRandomX = () => Math.floor(Math.random() * (windowWidth - 160));
+            const getRandomEmotion = () => emotions[Math.floor(Math.random() * emotions.length)];
+
+            function walkToNext() {
+                const targetX = getRandomX();
+                moveTo(targetX, () => {
+                    man.src = assets[getRandomEmotion()];
+                    setTimeout(walkToNext, 1000); // Pause for 1s before next move
+                });
+            }
+
+            walkToNext();
+        }
+
+        // Start the animation with the first brick
+        placeBrick(0);
+    </script>
+</body>
+</html>
