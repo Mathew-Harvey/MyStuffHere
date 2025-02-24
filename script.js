@@ -1,8 +1,16 @@
-const WALK_SPEED = 20; // Speed of the man's walking (pixels per frame)
-const ACTION_DELAY = 50; // Delay (in ms) for bending, holding, and dropping actions
-const ANIMATION_FRAME_RATE = 16; // Delay (in ms) for the moveTo animation loop (controls smoothness)
-const EMOTE_DELAY = 1000; // Delay (in ms) for displaying random emotion after completing a row
-const CHEER_DELAY = 2000; // Delay (in ms) for cheering after tearing down the wall
+// // Configuration variables for wall-building speed and behavior (adjust these as needed)
+// const WALK_SPEED = 20; // Speed of the man's walking (pixels per frame)
+// const ACTION_DELAY = 50; // Delay (in ms) for bending, holding, and dropping actions
+// const ANIMATION_FRAME_RATE = 16; // Delay (in ms) for the moveTo animation loop (controls smoothness)
+// const EMOTE_DELAY = 2000; // Delay (in ms) for displaying random emotion after completing a row
+// const CHEER_DELAY = 1000; // Delay (in ms) for each happy emotion after tearing down the wall
+
+// Configuration variables for fast wall-building (optimized for debugging, adjust as needed)
+const WALK_SPEED = 30; // Reduced speed for smoother movement (pixels per frame)
+const ACTION_DELAY = 20; // Slightly increased delay for stability (in ms)
+const ANIMATION_FRAME_RATE = 10; // Reduced delay for faster but smooth animation loop (in ms)
+const EMOTE_DELAY = 500; // Reduced delay for emotions, quick for testing (in ms)
+const CHEER_DELAY = 500; // Reduced delay for happy emotions after tear-down, fast for debugging (in ms)
 
 const portfolioItems = [
     { title: 'Artificial Life', url: 'https://mathew-harvey.github.io/Artificial-Life/', imageUrl: './images/particleplayground.png' },
@@ -188,11 +196,7 @@ for (let row = 0; row < numRows; row++) {
 }
 
 function getRandomEmotion() {
-    const emotions = [
-        'standing_happy', 'standing_angry', 'standing_sad',
-        'standing_frustrated', 'standing_satisfied'
-    ];
-    return emotions[Math.floor(Math.random() * emotions.length)];
+    return 'standing_happy'; // Force happy emotion as requested
 }
 
 function animateWalk() {
@@ -204,6 +208,7 @@ function animateWalk() {
 }
 
 function moveTo(targetX, targetBottom, callback) {
+    console.log(`Moving to targetX: ${targetX}, targetBottom: ${targetBottom}, current manX: ${manX}, current bottom: ${man.style.bottom}`);
     const walkInterval = animateWalk();
     const moveInterval = setInterval(() => {
         if (manX < targetX) {
@@ -214,11 +219,20 @@ function moveTo(targetX, targetBottom, callback) {
             if (manX <= targetX) manX = targetX;
         }
         man.style.left = `${manX}px`;
-        if (manX === targetX) {
+
+        if (manX === targetX && parseInt(man.style.bottom) !== targetBottom) {
+            const currentBottom = parseInt(man.style.bottom) || 0;
+            if (currentBottom < targetBottom) {
+                man.style.bottom = `${Math.min(currentBottom + WALK_SPEED, targetBottom)}px`;
+            } else if (currentBottom > targetBottom) {
+                man.style.bottom = `${Math.max(currentBottom - WALK_SPEED, targetBottom)}px`;
+            }
+        }
+
+        if (manX === targetX && parseInt(man.style.bottom) === targetBottom) {
             clearInterval(moveInterval);
             clearInterval(walkInterval);
             man.src = assets.standing_neutral;
-            man.style.bottom = `${targetBottom}px`; // Set the final bottom position immediately
             callback();
         }
     }, ANIMATION_FRAME_RATE);
@@ -230,46 +244,72 @@ function placeBrick(brickIndex) {
         return;
     }
     const brick = bricks[brickIndex];
+    console.log(`Placing brick ${brickIndex}, currentRow: ${currentRow}, brick.row: ${brick.row}, brick.col: ${brick.col}, brick.left: ${brick.left}, brick.bottom: ${brick.bottom}`);
+    // Determine if the man should start from the bottom or current row
+    const startBottom = currentRow === 0 ? 0 : currentRow * brickHeight; // Start at bottom for new builds, or current row height
+    // Ensure man doesn’t exceed viewport
+    const maxBottom = window.innerHeight - 240; // Man’s height is 240px
+    const adjustedStartBottom = Math.min(startBottom, maxBottom);
     // Move to pick up position (hardcoded since brick pile is removed)
-    const pickUpX = 160; // Hardcoded pickup position
-    moveTo(pickUpX, 0, () => { // Start at bottom or current row level
+    const pickUpX = Math.min(160, window.innerWidth - 160); // Hardcoded pickup position, clamped to viewport
+    const pickUpBottom = adjustedStartBottom;
+    moveTo(pickUpX, pickUpBottom, () => { // Start at bottom or current row, within viewport
         man.src = assets.bending;
         setTimeout(() => {
             man.src = assets.holding;
             setTimeout(() => {
-                moveTo(brick.left, 0, () => { // Place brick at bottom level
+                const placeBottom = brick.row === 0 ? 0 : brick.row * brickHeight; // Place at bottom for first row, or brick row height
+                const adjustedPlaceBottom = Math.min(placeBottom, maxBottom);
+                moveTo(brick.left, adjustedPlaceBottom, () => { // Place brick at bottom or current row level, within viewport
                     man.src = assets.dropping;
                     setTimeout(() => {
                         // Add brick to wall
                         const brickDiv = document.createElement('div');
                         brickDiv.className = 'brick';
-                        brickDiv.style.left = `${brick.left}px`;
-                        brickDiv.style.bottom = `${brick.bottom}px`;
+                        brickDiv.style.left = `${Math.min(brick.left, window.innerWidth - 50)}px`; // Clamp brick left to viewport
+                        brickDiv.style.bottom = `${adjustedPlaceBottom}px`;
                         wall.appendChild(brickDiv);
                         man.src = assets.standing_neutral;
                         // If completed a row, update wall height and emot/climb
                         if (brick.col === numCols - 1) {
                             const completedRows = brick.row + 1;
                             wall.style.height = `${completedRows * brickHeight}px`;
-                            // Show random emotion
-                            const emotion = getRandomEmotion();
-                            man.src = assets[emotion];
-                            setTimeout(() => {
-                                // Then climb to the top of the completed row
-                                currentRow = completedRows - 1; // Stand on the top row
-                                moveTo(brick.left, currentRow * brickHeight, () => {
-                                    man.src = assets.standing_neutral; // Reset to neutral after climbing
-                                    // Start the next row (first brick of the next row)
-                                    placeBrick(brickIndex + 1);
-                                });
-                            }, EMOTE_DELAY);
+                            // Move man to center of window before emoting
+                            const centerX = window.innerWidth / 2 - 80; // Center, accounting for man’s width (160px)
+                            moveTo(centerX, adjustedStartBottom, () => {
+                                // Show happy emotion three times
+                                let emoteCount = 0;
+                                function showHappyEmotion() {
+                                    man.src = assets.standing_happy;
+                                    setTimeout(() => {
+                                        emoteCount++;
+                                        if (emoteCount < 3) {
+                                            showHappyEmotion(); // Show happy again
+                                        } else {
+                                            // Then climb to the top of the completed row
+                                            currentRow = completedRows - 1; // Stand on the top row
+                                            const climbBottom = Math.min(currentRow * brickHeight, maxBottom);
+                                            moveTo(centerX, climbBottom, () => {
+                                                man.src = assets.standing_neutral; // Reset to neutral after climbing
+                                                // Start the next row (first brick of the next row)
+                                                if (brickIndex < bricks.length - 1) {
+                                                    placeBrick(brickIndex + 1);
+                                                }
+                                            });
+                                        }
+                                    }, CHEER_DELAY);
+                                }
+                                showHappyEmotion();
+                            });
                             // Check if should show button (e.g., when row >= 10)
                             if (completedRows >= 10 && !document.getElementById('tear-down-button')) {
                                 showTearDownButton();
                             }
                         } else {
                             // Continue with the next brick in the current row
-                            placeBrick(brickIndex + 1);
+                            if (brickIndex < bricks.length - 1) {
+                                placeBrick(brickIndex + 1);
+                            }
                         }
                     }, ACTION_DELAY);
                 });
@@ -312,22 +352,62 @@ function tearDownWall() {
         document.querySelectorAll('.debris').forEach(debris => debris.remove());
     }, 1500);
 
-    // Clear the wall
+    // Clear the wall completely and ensure no residual bricks
+    const remainingBricks = document.querySelectorAll('.brick');
+    if (remainingBricks.length > 0) {
+        console.log('Removing remaining bricks:', remainingBricks.length);
+        remainingBricks.forEach(brick => brick.remove());
+    }
     wall.innerHTML = '';
     wall.style.height = '0px';
+    wall.style.backgroundColor = 'transparent'; // Temporarily ensure no mortar color shows
     document.body.removeChild(document.getElementById('tear-down-button'));
 
-    // Reset man to bottom and cheer before rebuilding
+    // Reset man to bottom and show happy emotion three times before rebuilding
     man.style.left = '0px';
     man.style.bottom = '0px';
-    man.src = assets.cheering; // Show cheering animation
-    setTimeout(() => {
-        man.src = assets.standing_neutral; // Return to neutral before starting
-        currentRow = 0; // Reset to start at the bottom
-        brickIndex = 0; // Reset brick index to start from the beginning
-        placeBrick(brickIndex); // Start building from the bottom
-    }, CHEER_DELAY);
+    manX = 0; // Reset man’s position
+    currentRow = 0; // Reset to start at the bottom
+    brickIndex = 0; // Reset brick index to start from the beginning
+    let emoteCount = 0;
+    function showHappyEmotion() {
+        man.src = assets.standing_happy;
+        setTimeout(() => {
+            emoteCount++;
+            if (emoteCount < 3) {
+                showHappyEmotion(); // Show happy again
+            } else {
+                man.src = assets.standing_neutral; // Return to neutral before starting
+                placeBrick(brickIndex); // Start building from the bottom
+            }
+        }, CHEER_DELAY);
+    }
+    showHappyEmotion();
 }
 
 // Start the wall building process
 placeBrick(0);
+
+// Handle window resize to update brick layout dynamically
+window.addEventListener('resize', () => {
+    const newNumCols = Math.ceil(window.innerWidth / brickWidth);
+    const newNumRows = Math.ceil(window.innerHeight / brickHeight);
+    if (newNumCols !== numCols || newNumRows !== numRows) {
+        // Recalculate bricks if window size changes significantly
+        numCols = newNumCols;
+        numRows = newNumRows;
+        bricks.length = 0; // Clear existing bricks
+        for (let row = 0; row < numRows; row++) {
+            const offset = (row % 2 === 0) ? 0 : brickWidth / 2;
+            for (let col = 0; col < numCols; col++) {
+                const left = col * brickWidth + offset;
+                const bottom = row * brickHeight;
+                bricks.push({ row, col, left, bottom });
+            }
+        }
+        // Reset if building is in progress
+        if (brickIndex > 0) {
+            tearDownWall(); // Reset to handle resizing during build
+        }
+    }
+});
