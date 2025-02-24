@@ -1,13 +1,11 @@
+/* Background Gradient */
 body {
     background: linear-gradient(135deg, #1a1a1a, #2a4066, #4a2555);
-    background-size: 200% 200%;
+    background-size: 400% 400%; /* Increased size to prevent visible repetition */
     animation: bgGradient 10s ease infinite;
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
-    display: grid;
-    place-items: center;
-    height: 100vh;
     overflow: hidden;
     cursor: none; /* Hide default cursor */
 }
@@ -18,11 +16,13 @@ body {
     100% { background-position: 0% 50%; }
 }
 
+/* Swiper Carousel */
 .swiper {
     width: 80%;
     margin: 0 auto;
     padding: 50px 0;
     height: 600px;
+    z-index: 0; /* Ensure carousel is behind the game container */
 }
 
 .swiper-slide {
@@ -118,32 +118,134 @@ body {
 
 .visit-prompt {
     position: absolute;
-    top: 10px;                      /* Positions prompt at the top of the card */
+    top: 10px;
     left: 50%;
-    transform: translateX(-50%);    /* Centers it horizontally */
-    background: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
-    color: white;                   /* White text for visibility */
-    padding: 5px 10px;              /* Comfortable padding */
-    border-radius: 5px;             /* Rounded corners */
-    font-size: 0.9rem;              /* Slightly smaller text */
-    opacity: 0;                     /* Hidden by default */
-    transition: opacity 0.3s ease;  /* Smooth fade-in effect */
-    z-index: 10;                    /* Ensures it’s above other elements */
-    pointer-events: none;           /* Prevents blocking click events */
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+    pointer-events: none;
 }
 
 .swiper-slide-active .card:hover .visit-prompt {
-    opacity: 1;                     /* Shows prompt when hovering over the card of the active slide */
+    opacity: 1;
 }
 
 @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Game Container for Pixel Man and Wall */
+#game-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 250px; /* Adjust height based on your layout */
+    z-index: 1; /* Ensure it's above the carousel */
+    background-color: transparent; /* Transparent background */
+}
+
+/* Wall Container */
+#wall {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0; /* Starts empty, grows as bricks are added */
+    background-color: #8B8682; /* Mortar color for the wall */
+    z-index: 0; /* Behind the man */
+    overflow: visible; /* Allow bricks to be visible as they are placed */
+}
+
+/* Brick Styling */
+.brick {
+    width: 50px;
+    height: 25px;
+    background: linear-gradient(
+        45deg,
+        #922820 0%,
+        #be4032 20%,
+        #922820 30%,
+        #be4032 40%,
+        #922820 50%,
+        #be4032 60%,
+        #922820 70%,
+        #be4032 80%,
+        #922820 100%
+    );
+    position: absolute;
+    box-shadow: 
+        inset 2px 2px 5px rgba(255, 255, 255, 0.15),
+        inset -2px -2px 5px rgba(0, 0, 0, 0.15),
+        5px 5px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+.brick::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        repeating-linear-gradient(
+            0deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.05) 1%,
+            transparent 2%,
+            rgba(0, 0, 0, 0.05) 3%
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.05) 1%,
+            transparent 2%,
+            rgba(0, 0, 0, 0.05) 3%
+        );
+    mix-blend-mode: overlay;
+    border-radius: 2px;
+}
+
+/* Pixel Man */
+#man {
+    position: absolute;
+    width: 160px; /* 16px * 10 scale */
+    height: 240px; /* 24px * 10 scale */
+    left: 0;
+    bottom: 0;
+    z-index: 1; /* In front of the wall */
+    image-rendering: pixelated; /* Keeps pixel art crisp */
+}
+
+/* Smoke and Crumbling Animation for Wall Tear Down */
+.debris {
+    position: absolute;
+    background-color: #A0522D;
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+    animation: explode 1.5s ease-out forwards;
+}
+
+@keyframes explode {
     0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.2);
+        opacity: 1;
+        transform: translate(0, 0) rotate(0deg);
     }
     100% {
-        transform: scale(1);
+        opacity: 0;
+        transform: translate(
+            calc(100px * (var(--dx, 1))),
+            calc(200px * (var(--dy, 1)))
+        ) rotate(720deg);
     }
 }
