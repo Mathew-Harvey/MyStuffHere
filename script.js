@@ -29,7 +29,9 @@ const portfolioItems = [
   { title: 'bfmpGenerator', url: 'https://mathew-harvey.github.io/bfmpGenerator/', imageUrl: './images/bfmpgenerator.png' },
   { title: 'AgenticBubbleSort', url: 'https://mathew-harvey.github.io/AgenticBubbleSort/', imageUrl: './images/agenticsort.png' },
   { title: 'ElodieBook_Two', url: 'https://mathew-harvey.github.io/ElodieBook_Two/', imageUrl: './images/ebook2.png' },
-  { title: 'ElodieBook_One', url: 'https://mathew-harvey.github.io/ElodieBook_One/', imageUrl: './images/ebook1.png' }
+  { title: 'ElodieBook_One', url: 'https://mathew-harvey.github.io/ElodieBook_One/', imageUrl: './images/ebook1.png' },
+  { title: 'The BodyweightGym', url: 'https://mathewharvey.wixsite.com/mysite/about', imageUrl: './images/bwgSite.png' }
+
 ];
 
 const swiperWrapper = document.querySelector('.swiper-wrapper');
