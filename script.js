@@ -1,4 +1,151 @@
-// Configuration variables for user-friendly wall-building
+// Core brick placement function
+function placeBrick(currentBrickIndex, version) {
+  if (version !== buildVersion) return;
+  if (currentBrickIndex >= bricks.length) return;
+  
+  console.log('Placing brick:', currentBrickIndex);
+  
+  // Check if it's time to tell a joke (increased frequency)
+  if (Math.random() < 1/JOKE_FREQUENCY && bricksPlaced > 0) {
+    shouldTellJoke = true;
+  }
+  
+  if (shouldTellJoke) {
+    shouldTellJoke = false;
+    // Important: when telling a joke, we pass the current brick index
+    // This ensures we return to the same brick after the joke
+    tellJoke(version);
+    return;
+  }
+  
+  const brick = bricks[currentBrickIndex];
+  const startBottom = currentRow === 0 ? 0 : currentRow * brickHeight;
+  const maxBottom = window.innerHeight - 240;
+  const adjustedStartBottom = Math.min(startBottom, maxBottom);
+  
+  // Check if this brick has already been placed
+  const existingBrick = document.querySelector(`.brick[data-index="${currentBrickIndex}"]`);
+  if (existingBrick) {
+    console.log('Brick', currentBrickIndex, 'already exists, skipping to next brick');
+    placeBrick(currentBrickIndex + 1, version);
+    return;
+  }
+  
+  // First go to the brick pile
+  const brickPileX = 110;  // Adjusted for larger brick pile
+  const brickPileBottom = 0; 
+  
+  moveTo(brickPileX, brickPileBottom, () => {
+    if (version !== buildVersion) return;
+    
+    // Bend down to pick up a brick
+    man.src = getRandomVariant('bending_var');
+    
+    setTimeout(() => {
+      if (version !== buildVersion) return;
+      
+      // Hold the brick
+      man.src = getRandomVariant('holding_var');
+      
+      setTimeout(() => {
+        if (version !== buildVersion) return;
+        
+        // Move to the placement position
+        const placeBottom = brick.row === 0 ? 0 : brick.row * brickHeight;
+        const adjustedPlaceBottom = Math.min(placeBottom, maxBottom);
+        
+        moveTo(brick.left, adjustedPlaceBottom, () => {
+          if (version !== buildVersion) return;
+          
+          // Use reaching up animation if placing higher
+          if (placeBottom > 50) {
+            man.src = getRandomEmotion('reachingUp');
+          } else {
+            man.src = getRandomVariant('dropping_var');
+          }
+          
+          setTimeout(() => {
+            if (version !== buildVersion) return;
+            
+            // Create and place the brick
+            const brickDiv = document.createElement('div');
+            brickDiv.className = 'brick';
+            brickDiv.setAttribute('data-index', currentBrickIndex); // Mark the brick with its index
+            brickDiv.style.left = `${Math.min(brick.left, window.innerWidth - 50)}px`;
+            brickDiv.style.bottom = `${adjustedPlaceBottom}px`;
+            wall.appendChild(brickDiv);
+            
+            // Update counters
+            bricksPlaced++;
+            lastPlacedBrickIndex = currentBrickIndex; // Record this brick as placed
+            brickIndex = currentBrickIndex + 1; // Increment global brick index
+            
+            console.log('Placed brick:', currentBrickIndex, 'Next brick will be:', brickIndex);
+            man.src = getRandomEmotion('brickDropped');
+            
+            // Check if a row is completed
+            if (brick.col === numCols - 1) {
+              const completedRows = brick.row + 1;
+              wall.style.height = `${completedRows * brickHeight}px`;
+              
+              // Move to center to celebrate
+              const centerX = window.innerWidth / 2 - 40;
+              moveTo(centerX, adjustedStartBottom, () => {
+                if (version !== buildVersion) return;
+                
+                // Celebrate with happy emotions
+                let emoteCount = 0;
+                function showRowCompleteEmotion() {
+                  if (version !== buildVersion) return;
+                  
+                  // Show a variety of happy emotions
+                  man.src = getRandomEmotion('rowComplete');
+                  
+                  setTimeout(() => {
+                    if (version !== buildVersion) return;
+                    emoteCount++;
+                    
+                    if (emoteCount < 2) {
+                      showRowCompleteEmotion();
+                    } else {
+                      // Update current row and continue building
+                      currentRow = completedRows - 1;
+                      const climbBottom = Math.min(currentRow * brickHeight, maxBottom);
+                      
+                      // Move to the new row position
+                      moveTo(centerX, climbBottom, () => {
+                        if (version !== buildVersion) return;
+                        man.src = getRandomEmotion('buildStart');
+                        
+                        // Continue with the next brick at the correctly incremented index
+                        if (brickIndex < bricks.length) {
+                          placeBrick(brickIndex, version);
+                        }
+                      }, version);
+                    }
+                  }, CHEER_DELAY);
+                }
+                
+                showRowCompleteEmotion();
+              }, version);
+              
+              // Show tear down button after enough rows
+              if (completedRows >= 5 && !document.getElementById('tear-down-button')) {
+                showTearDownButton();
+              }
+            } else {
+              // Continue with the next brick if row isn't complete
+              // The index has already been incremented
+              if (brickIndex < bricks.length) {
+                placeBrick(brickIndex, version);
+              }
+            }
+          }, ACTION_DELAY);
+        }, version);
+      }, ACTION_DELAY);
+    }, ACTION_DELAY);
+  }, version);
+}// Configuration variables for user-friendly wall-building
 const WALK_SPEED = 8; // Moderate speed of the man's walking (pixels per frame)
 const ACTION_DELAY = 300; // Moderate delay (in ms) for bending, holding, and dropping actions
 const ANIMATION_FRAME_RATE = 50; // Moderate delay (in ms) for the moveTo animation loop
@@ -31,203 +178,193 @@ const portfolioItems = [
 // Dad jokes array - will be populated from JSON
 let dadJokes = [];
 
-// Fetch dad jokes from JSON file
-fetch('dadJokes.json')
-  .then(response => response.json())
-  .then(data => {
-    dadJokes = data;
-    console.log('Dad jokes loaded:', dadJokes.length);
-  })
-  .catch(error => {
-    console.error('Error loading dad jokes:', error);
-    // Fallback jokes in case the file doesn't load
-    dadJokes = 
-    
-    [
-      {"id": 1, "joke": "I couldn't figure out why the baseball kept getting larger. Then it hit me."},
-      {"id": 2, "joke": "What's the difference between a hippo and a zippo? One is really heavy, the other is a little lighter."},
-      {"id": 3, "joke": "I asked the librarian if the library had any books on paranoia. She whispered, 'They're right behind you...'"},
-      {"id": 4, "joke": "Why do pirates not know the alphabet? They always get lost at C."},
-      {"id": 5, "joke": "What do dentists call their x-rays? Tooth pics."},
-      {"id": 6, "joke": "Did you hear about the kidnapping at the playground? They woke up."},
-      {"id": 7, "joke": "What did the janitor say when he jumped out of the closet? Supplies!"},
-      {"id": 8, "joke": "Why did the hipster burn his mouth? He drank the coffee before it was cool."},
-      {"id": 9, "joke": "How does Moses make tea? Hebrews it."},
-      {"id": 10, "joke": "Why can't you hear a pterodactyl go to the bathroom? Because the p is silent."},
-      {"id": 11, "joke": "What do you call a line of men waiting to get haircuts? A barberqueue."},
-      {"id": 12, "joke": "What do you call a deer with no eyes? No idea."},
-      {"id": 13, "joke": "What's the best part about living in Switzerland? I don't know, but the flag is a big plus."},
-      {"id": 14, "joke": "How do you organize a space party? You planet."},
-      {"id": 15, "joke": "Why did the scarecrow win an award? Because he was outstanding in his field."},
-      {"id": 16, "joke": "I'm reading a book about anti-gravity. It's impossible to put down!"},
-      {"id": 17, "joke": "Why do sea-gulls fly over the sea? Because if they flew over the bay, they'd be bagels."},
-      {"id": 18, "joke": "What kind of award did the dentist receive? A little plaque."},
-      {"id": 19, "joke": "Why don't scientists trust atoms? Because they make up everything."},
-      {"id": 20, "joke": "What sits at the bottom of the sea and twitches? A nervous wreck."},
-      {"id": 21, "joke": "What's Forrest Gump's password? 1forrest1"},
-      {"id": 22, "joke": "Why couldn't the bicycle stand up by itself? It was two tired."},
-      {"id": 23, "joke": "How many tickles does it take to make an octopus laugh? Ten-tickles."},
-      {"id": 24, "joke": "What do you call a belt made of watches? A waist of time."},
-      {"id": 25, "joke": "What do you call a elephant that doesn't matter? An irrelephant."},
-      {"id": 26, "joke": "What did the fish say when it hit the wall? Dam."},
-      {"id": 27, "joke": "What do you get from a pampered cow? Spoiled milk."},
-      {"id": 28, "joke": "What do you call a sad cup of coffee? Depresso."},
-      {"id": 29, "joke": "What did the pirate say on his 80th birthday? Aye matey!"},
-      {"id": 30, "joke": "Why did the golfer bring two pairs of pants? In case he got a hole in one."},
-      {"id": 31, "joke": "Why don't eggs tell jokes? They'd crack each other up."},
-      {"id": 32, "joke": "I told my wife she was drawing her eyebrows too high. She looked surprised."},
-      {"id": 33, "joke": "What do you call a fake noodle? An impasta."},
-      {"id": 34, "joke": "What's brown and sticky? A stick."},
-      {"id": 35, "joke": "Did you hear about the cheese factory explosion? There was nothing left but de-brie."},
-      {"id": 36, "joke": "When does a joke become a dad joke? When it becomes apparent."},
-      {"id": 37, "joke": "I used to be a baker, but I couldn't make enough dough."},
-      {"id": 38, "joke": "What did the buffalo say to his son when he left for college? Bison."},
-      {"id": 39, "joke": "Did you hear about the guy who invented Lifesavers? They say he made a mint."},
-      {"id": 40, "joke": "I used to be addicted to the hokey pokey, but I turned myself around."},
-      {"id": 41, "joke": "Why don't skeletons fight each other? They don't have the guts."},
-      {"id": 42, "joke": "How do you make holy water? You boil the hell out of it."},
-      {"id": 43, "joke": "What's the difference between a poorly dressed man on a trampoline and a well-dressed man on a trampoline? Attire."},
-      {"id": 44, "joke": "I used to be a banker, but I lost interest."},
-      {"id": 45, "joke": "What do you call a factory that makes okay products? A satisfactory."},
-      {"id": 46, "joke": "How does a penguin build its house? Igloos it together."},
-      {"id": 47, "joke": "Why do melons have weddings? Because they cantaloupe."},
-      {"id": 48, "joke": "What do you call a dog that can do magic? A labracadabrador."},
-      {"id": 49, "joke": "I'm on a whiskey diet. I've lost three days already."},
-      {"id": 50, "joke": "I was wondering why the ball kept getting bigger and bigger, and then it hit me."},
-      {"id": 51, "joke": "Why are skeletons so calm? Because nothing gets under their skin."},
-      {"id": 52, "joke": "What's Beethoven's favorite fruit? BA-NA-NA-NAAA!"},
-      {"id": 53, "joke": "I used to be addicted to soap, but I'm clean now."},
-      {"id": 54, "joke": "I have a fear of speedbumps, but I'm slowly getting over it."},
-      {"id": 55, "joke": "I invented a new word today: Plagiarism."},
-      {"id": 56, "joke": "My boss told me to have a good day, so I went home."},
-      {"id": 57, "joke": "Someone broke into my house last night and stole my limbo trophy. How low can you go?"},
-      {"id": 58, "joke": "What do you call an alligator in a vest? An investigator."},
-      {"id": 59, "joke": "My wife told me to stop impersonating a flamingo. I had to put my foot down."},
-      {"id": 60, "joke": "What do you call it when Batman skips church? Christian Bale."},
-      {"id": 61, "joke": "Did you hear about the Italian chef who died? He pasta way."},
-      {"id": 62, "joke": "Parallel lines have so much in common. It's a shame they'll never meet."},
-      {"id": 63, "joke": "Where does a general keep his armies? In his sleevies."},
-      {"id": 64, "joke": "Two guys walked into a bar. The third one ducked."},
-      {"id": 65, "joke": "What do you call someone with no body and no nose? Nobody knows."},
-      {"id": 66, "joke": "I had a neck brace fitted years ago and I've never looked back since."},
-      {"id": 67, "joke": "A priest, a rabbi, and a minister walk into a bar. The bartender says, 'What is this, some kind of joke?'"},
-      {"id": 68, "joke": "Why is six afraid of seven? Because seven eight nine."},
-      {"id": 69, "joke": "What did the left eye say to the right eye? Between you and me, something smells."},
-      {"id": 70, "joke": "I have a joke about chemistry, but I don't think it will get a reaction."},
-      {"id": 71, "joke": "I tried to catch fog yesterday. Mist."},
-      {"id": 72, "joke": "What's the difference between a seal and a sea lion? An ion."},
-      {"id": 73, "joke": "I'm friends with all electricians. We have great current connections."},
-      {"id": 74, "joke": "The rotation of Earth really makes my day."},
-      {"id": 75, "joke": "What do you get when you cross a joke with a rhetorical question?"},
-      {"id": 76, "joke": "Two goldfish are in a tank. One says to the other, 'Do you know how to drive this thing?'"},
-      {"id": 77, "joke": "What's red and smells like blue paint? Red paint."},
-      {"id": 78, "joke": "Why did the man fall down the well? Because he couldn't see that well!"},
-      {"id": 79, "joke": "My neighbor asked if he could use my lawnmower. I told him sure, just don't take it out of my yard."},
-      {"id": 80, "joke": "Why did the picture go to jail? Because it was framed!"},
-      {"id": 81, "joke": "Did you hear about the restaurant called 'Karma'? There's no menu—you get what you deserve."},
-      {"id": 82, "joke": "I had a dream that I was floating in an ocean of orange soda. It was a Fanta sea."},
-      {"id": 83, "joke": "Did you hear about the circus fire? It was in tents."},
-      {"id": 84, "joke": "What do you call a pig that does karate? A pork chop."},
-      {"id": 85, "joke": "I've started telling everyone about the benefits of eating dried grapes. It's all about raisin awareness."},
-      {"id": 86, "joke": "What did the baby corn say to the mama corn? Where's popcorn?"},
-      {"id": 87, "joke": "What do you call an illegally parked frog? Toad."},
-      {"id": 88, "joke": "How do you get a country girl's attention? A tractor."},
-      {"id": 89, "joke": "Why did the stadium get hot after the game? All the fans left."},
-      {"id": 90, "joke": "What do you call a pile of cats? A meowtain."},
-      {"id": 91, "joke": "What do you call a dinosaur with an extensive vocabulary? A thesaurus."},
-      {"id": 92, "joke": "Why was the belt sent to jail? For holding up a pair of pants."},
-      {"id": 93, "joke": "I'm friends with 25 letters of the alphabet. I don't know Y."},
-      {"id": 94, "joke": "A woman in labor suddenly shouted, 'Shouldn't! Wouldn't! Couldn't! Didn't! Can't!' The doctor said, 'Don't worry, those are just contractions.'"},
-      {"id": 95, "joke": "Did you hear about the claustrophobic astronaut? He needed a little space."},
-      {"id": 96, "joke": "What's the difference between a poorly dressed man on a unicycle and a well-dressed man on a bicycle? Attire."},
-      {"id": 97, "joke": "What did one elevator say to the other? I think I'm coming down with something."},
-      {"id": 98, "joke": "What did the ocean say to the beach? Nothing, it just waved."},
-      {"id": 99, "joke": "What did the fish say when it swam into a wall? Dam."},
-      {"id": 100, "joke": "What did one toilet say to another toilet? You look flushed."},
-      {"id": 101, "joke": "What do you call a bear with no teeth? A gummy bear."},
-      {"id": 102, "joke": "What has more lives than a cat? A frog, because it croaks every day."},
-      {"id": 103, "joke": "I used to play piano by ear, but now I use my hands."},
-      {"id": 104, "joke": "Where do fruits go on vacation? Pear-is."},
-      {"id": 105, "joke": "I wouldn't buy anything with velcro. It's a total rip-off."},
-      {"id": 106, "joke": "What do you call a cow with two legs? Lean beef."},
-      {"id": 107, "joke": "Did you hear about the scientist who was lab partners with a pot of boiling water? He had a very heated relationship."},
-      {"id": 108, "joke": "Why don't eggs tell jokes? They might crack up."},
-      {"id": 109, "joke": "The shovel was a ground-breaking invention."},
-      {"id": 110, "joke": "What time did the man go to the dentist? Tooth-hurty."},
-      {"id": 111, "joke": "Did you hear about the guy who invented the knock-knock joke? He won the 'no-bell' prize."},
-      {"id": 112, "joke": "A termite walks into a bar and asks, 'Is the bar tender here?'"},
-      {"id": 113, "joke": "Why did the invisible man turn down the job offer? He couldn't see himself doing it."},
-      {"id": 114, "joke": "What kind of shoes do ninjas wear? Sneakers."},
-      {"id": 115, "joke": "How do you make a tissue dance? Put a little boogie in it."},
-      {"id": 116, "joke": "Why did the tomato turn red? Because it saw the salad dressing."},
-      {"id": 117, "joke": "What do you call a parade of rabbits hopping backwards? A receding hare-line."},
-      {"id": 118, "joke": "What do you call a cow with no legs? Ground beef."},
-      {"id": 119, "joke": "How do you catch a squirrel? Climb a tree and act like a nut."},
-      {"id": 120, "joke": "What's orange and sounds like a parrot? A carrot."},
-      {"id": 121, "joke": "Why can't you hear a psychiatrist using the bathroom? Because the P is silent."},
-      {"id": 122, "joke": "What did one hat say to the other? You stay here. I'll go on ahead."},
-      {"id": 123, "joke": "What did the finger say to the thumb? I'm in glove with you."},
-      {"id": 124, "joke": "What is a computer's favorite snack? Computer chips."},
-      {"id": 125, "joke": "What do you call cheese that isn't yours? Nacho cheese."},
-      {"id": 126, "joke": "Why do cows wear bells? Because their horns don't work."},
-      {"id": 127, "joke": "A book just fell on my head. I only have myshelf to blame."},
-      {"id": 128, "joke": "I ordered a chicken and an egg online. I'll let you know."},
-      {"id": 129, "joke": "What's E.T. short for? Because he's got little legs."},
-      {"id": 130, "joke": "Did you hear about the mathematician who's afraid of negative numbers? He'll stop at nothing to avoid them."},
-      {"id": 131, "joke": "I'm on a seafood diet. Every time I see food, I eat it."},
-      {"id": 132, "joke": "What did one wall say to the other wall? I'll meet you at the corner."},
-      {"id": 133, "joke": "Did you hear about the guy who invented the door knocker? He won the No-bell prize."},
-      {"id": 134, "joke": "I've got a joke about construction, but I'm still working on it."},
-      {"id": 135, "joke": "I would tell you a chemistry joke, but I know I wouldn't get a reaction."},
-      {"id": 136, "joke": "Did you hear about the restaurant called Karma? There's no menu - you get what you deserve."},
-      {"id": 137, "joke": "What do you call a fish wearing a crown? King of the sea."},
-      {"id": 138, "joke": "What do you call a fish with no eyes? Fsh."},
-      {"id": 139, "joke": "What did the grape say when it got stepped on? Nothing, it just let out a little wine."},
-      {"id": 140, "joke": "Want to hear a joke about construction? Nah, I'm still working on it."},
-      {"id": 141, "joke": "What do you call a can opener that doesn't work? A can't opener."},
-      {"id": 142, "joke": "I bought some shoes from a drug dealer. I don't know what he laced them with, but I've been tripping all day."},
-      {"id": 143, "joke": "My wife said I should do lunges to stay in shape. That would be a big step forward."},
-      {"id": 144, "joke": "What's a vampire's favorite fruit? A neck-tarine."},
-      {"id": 145, "joke": "My dad unfortunately passed away when we couldn't remember his blood type. His last words were 'Be positive.'"},
-      {"id": 146, "joke": "Why did the old man fall in the well? Because he couldn't see that well."},
-      {"id": 147, "joke": "What do you call a sleeping bull? A bulldozer."},
-      {"id": 148, "joke": "Did you hear about the guy whose whole left side was cut off? He's all right now."},
-      {"id": 149, "joke": "I don't like elevator jokes. They work on so many levels."},
-      {"id": 150, "joke": "My friend drove his expensive car into a tree and found out how the Mercedes bends."},
-      {"id": 151, "joke": "I used to hate facial hair, but then it grew on me."},
-      {"id": 152, "joke": "I'm so good at sleeping I can do it with my eyes closed."},
-      {"id": 153, "joke": "Why did the coffee file a police report? It got mugged."},
-      {"id": 154, "joke": "Why don't oysters donate to charity? Because they're shellfish."},
-      {"id": 155, "joke": "What happens when a strawberry gets run over crossing the street? Traffic jam."},
-      {"id": 156, "joke": "Why couldn't the leopard play hide and seek? Because he was always spotted."},
-      {"id": 157, "joke": "Where do you learn to make a banana split? Sundae school."},
-      {"id": 158, "joke": "How do astronomers organize a party? They planet."},
-      {"id": 159, "joke": "What's the best way to watch a fly fishing tournament? Live stream."},
-      {"id": 160, "joke": "Why are graveyards so noisy? Because of all the coffin."},
-      {"id": 161, "joke": "What do you call a cow with a twitch? Beef jerky."},
-      {"id": 162, "joke": "I told my doctor that I broke my arm in two places. He told me to stop going to those places."},
-      {"id": 163, "joke": "Why can't you give Elsa a balloon? Because she will let it go."},
-      {"id": 164, "joke": "What musical instrument is found in the bathroom? A tuba toothpaste."},
-      {"id": 165, "joke": "What do you get when you cross a snowman with a vampire? Frostbite."},
-      {"id": 166, "joke": "What do sprinters eat before a race? Nothing, they fast."},
-      {"id": 167, "joke": "My wife told me to take the spider out instead of killing it. We went out, had some drinks. Nice guy. Wants to be a web designer."},
-      {"id": 168, "joke": "What kind of tree fits in your hand? A palm tree."},
-      {"id": 169, "joke": "What did the digital clock say to its mother? Look, no hands!"},
-      {"id": 170, "joke": "Did you hear about the restaurant on the moon? Great food, no atmosphere."},
-      {"id": 171, "joke": "What do you call two monkeys that share an Amazon account? Prime mates."},
-      {"id": 172, "joke": "I found a wooden shoe in my toilet today. It was clogged."},
-      {"id": 173, "joke": "What's a pirate's favorite letter? You'd think it's R, but his first love is the C."},
-      {"id": 174, "joke": "What do you call a pony with a sore throat? A little horse."},
-      {"id": 175, "joke": "What do you call a man with a rubber toe? Roberto."},
-      {"id": 176, "joke": "Where do boats go when they're sick? To the dock."},
-      {"id": 177, "joke": "What do you call a boomerang that doesn't come back? A stick."},
-      {"id": 178, "joke": "What's brown and sounds like a bell? Dung!"},
-      {"id": 179, "joke": "I know a lot of jokes about unemployed people but none of them work."},
-      {"id": 180, "joke": "How do you make a Swiss roll? Push him down a mountain."},
-      {"id": 181, "joke": "I don't play soccer because I enjoy the sport. I'm just doing it for kicks."},
-      {"id": 182, "joke": "How do trees access the internet? They log in."}
-    ];  });
-
+// Fetch dad jokes - using inline jokes instead of external file to avoid CORS issues
+console.log('Setting up dad jokes directly in the script to avoid CORS issues');
+dadJokes = 
+[
+  {"id": 1, "joke": "I couldn't figure out why the baseball kept getting larger. Then it hit me."},
+  {"id": 2, "joke": "What's the difference between a hippo and a zippo? One is really heavy, the other is a little lighter."},
+  {"id": 3, "joke": "I asked the librarian if the library had any books on paranoia. She whispered, 'They're right behind you...'"},
+  {"id": 4, "joke": "Why do pirates not know the alphabet? They always get lost at C."},
+  {"id": 5, "joke": "What do dentists call their x-rays? Tooth pics."},
+  {"id": 6, "joke": "Did you hear about the kidnapping at the playground? They woke up."},
+  {"id": 7, "joke": "What did the janitor say when he jumped out of the closet? Supplies!"},
+  {"id": 8, "joke": "Why did the hipster burn his mouth? He drank the coffee before it was cool."},
+  {"id": 9, "joke": "How does Moses make tea? Hebrews it."},
+  {"id": 10, "joke": "Why can't you hear a pterodactyl go to the bathroom? Because the p is silent."},
+  {"id": 11, "joke": "What do you call a line of men waiting to get haircuts? A barberqueue."},
+  {"id": 12, "joke": "What do you call a deer with no eyes? No idea."},
+  {"id": 13, "joke": "What's the best part about living in Switzerland? I don't know, but the flag is a big plus."},
+  {"id": 14, "joke": "How do you organize a space party? You planet."},
+  {"id": 15, "joke": "Why did the scarecrow win an award? Because he was outstanding in his field."},
+  {"id": 16, "joke": "I'm reading a book about anti-gravity. It's impossible to put down!"},
+  {"id": 17, "joke": "Why do sea-gulls fly over the sea? Because if they flew over the bay, they'd be bagels."},
+  {"id": 18, "joke": "What kind of award did the dentist receive? A little plaque."},
+  {"id": 19, "joke": "Why don't scientists trust atoms? Because they make up everything."},
+  {"id": 20, "joke": "What sits at the bottom of the sea and twitches? A nervous wreck."},
+  {"id": 21, "joke": "What's Forrest Gump's password? 1forrest1"},
+  {"id": 22, "joke": "Why couldn't the bicycle stand up by itself? It was two tired."},
+  {"id": 23, "joke": "How many tickles does it take to make an octopus laugh? Ten-tickles."},
+  {"id": 24, "joke": "What do you call a belt made of watches? A waist of time."},
+  {"id": 25, "joke": "What do you call a elephant that doesn't matter? An irrelephant."},
+  {"id": 26, "joke": "What did the fish say when it hit the wall? Dam."},
+  {"id": 27, "joke": "What do you get from a pampered cow? Spoiled milk."},
+  {"id": 28, "joke": "What do you call a sad cup of coffee? Depresso."},
+  {"id": 29, "joke": "What did the pirate say on his 80th birthday? Aye matey!"},
+  {"id": 30, "joke": "Why did the golfer bring two pairs of pants? In case he got a hole in one."},
+  {"id": 31, "joke": "Why don't eggs tell jokes? They'd crack each other up."},
+  {"id": 32, "joke": "I told my wife she was drawing her eyebrows too high. She looked surprised."},
+  {"id": 33, "joke": "What do you call a fake noodle? An impasta."},
+  {"id": 34, "joke": "What's brown and sticky? A stick."},
+  {"id": 35, "joke": "Did you hear about the cheese factory explosion? There was nothing left but de-brie."},
+  {"id": 36, "joke": "When does a joke become a dad joke? When it becomes apparent."},
+  {"id": 37, "joke": "I used to be a baker, but I couldn't make enough dough."},
+  {"id": 38, "joke": "What did the buffalo say to his son when he left for college? Bison."},
+  {"id": 39, "joke": "Did you hear about the guy who invented Lifesavers? They say he made a mint."},
+  {"id": 40, "joke": "I used to be addicted to the hokey pokey, but I turned myself around."},
+  {"id": 41, "joke": "Why don't skeletons fight each other? They don't have the guts."},
+  {"id": 42, "joke": "How do you make holy water? You boil the hell out of it."},
+  {"id": 43, "joke": "What's the difference between a poorly dressed man on a trampoline and a well-dressed man on a trampoline? Attire."},
+  {"id": 44, "joke": "I used to be a banker, but I lost interest."},
+  {"id": 45, "joke": "What do you call a factory that makes okay products? A satisfactory."},
+  {"id": 46, "joke": "How does a penguin build its house? Igloos it together."},
+  {"id": 47, "joke": "Why do melons have weddings? Because they cantaloupe."},
+  {"id": 48, "joke": "What do you call a dog that can do magic? A labracadabrador."},
+  {"id": 49, "joke": "I'm on a whiskey diet. I've lost three days already."},
+  {"id": 50, "joke": "I was wondering why the ball kept getting bigger and bigger, and then it hit me."},
+  {"id": 51, "joke": "Why are skeletons so calm? Because nothing gets under their skin."},
+  {"id": 52, "joke": "What's Beethoven's favorite fruit? BA-NA-NA-NAAA!"},
+  {"id": 53, "joke": "I used to be addicted to soap, but I'm clean now."},
+  {"id": 54, "joke": "I have a fear of speedbumps, but I'm slowly getting over it."},
+  {"id": 55, "joke": "I invented a new word today: Plagiarism."},
+  {"id": 56, "joke": "My boss told me to have a good day, so I went home."},
+  {"id": 57, "joke": "Someone broke into my house last night and stole my limbo trophy. How low can you go?"},
+  {"id": 58, "joke": "What do you call an alligator in a vest? An investigator."},
+  {"id": 59, "joke": "My wife told me to stop impersonating a flamingo. I had to put my foot down."},
+  {"id": 60, "joke": "What do you call it when Batman skips church? Christian Bale."},
+  {"id": 61, "joke": "Did you hear about the Italian chef who died? He pasta way."},
+  {"id": 62, "joke": "Parallel lines have so much in common. It's a shame they'll never meet."},
+  {"id": 63, "joke": "Where does a general keep his armies? In his sleevies."},
+  {"id": 64, "joke": "Two guys walked into a bar. The third one ducked."},
+  {"id": 65, "joke": "What do you call someone with no body and no nose? Nobody knows."},
+  {"id": 66, "joke": "I had a neck brace fitted years ago and I've never looked back since."},
+  {"id": 67, "joke": "A priest, a rabbi, and a minister walk into a bar. The bartender says, 'What is this, some kind of joke?'"},
+  {"id": 68, "joke": "Why is six afraid of seven? Because seven eight nine."},
+  {"id": 69, "joke": "What did the left eye say to the right eye? Between you and me, something smells."},
+  {"id": 70, "joke": "I have a joke about chemistry, but I don't think it will get a reaction."},
+  {"id": 71, "joke": "I tried to catch fog yesterday. Mist."},
+  {"id": 72, "joke": "What's the difference between a seal and a sea lion? An ion."},
+  {"id": 73, "joke": "I'm friends with all electricians. We have great current connections."},
+  {"id": 74, "joke": "The rotation of Earth really makes my day."},
+  {"id": 75, "joke": "What do you get when you cross a joke with a rhetorical question?"},
+  {"id": 76, "joke": "Two goldfish are in a tank. One says to the other, 'Do you know how to drive this thing?'"},
+  {"id": 77, "joke": "What's red and smells like blue paint? Red paint."},
+  {"id": 78, "joke": "Why did the man fall down the well? Because he couldn't see that well!"},
+  {"id": 79, "joke": "My neighbor asked if he could use my lawnmower. I told him sure, just don't take it out of my yard."},
+  {"id": 80, "joke": "Why did the picture go to jail? Because it was framed!"},
+  {"id": 81, "joke": "Did you hear about the restaurant called 'Karma'? There's no menu—you get what you deserve."},
+  {"id": 82, "joke": "I had a dream that I was floating in an ocean of orange soda. It was a Fanta sea."},
+  {"id": 83, "joke": "Did you hear about the circus fire? It was in tents."},
+  {"id": 84, "joke": "What do you call a pig that does karate? A pork chop."},
+  {"id": 85, "joke": "I've started telling everyone about the benefits of eating dried grapes. It's all about raisin awareness."},
+  {"id": 86, "joke": "What did the baby corn say to the mama corn? Where's popcorn?"},
+  {"id": 87, "joke": "What do you call an illegally parked frog? Toad."},
+  {"id": 88, "joke": "How do you get a country girl's attention? A tractor."},
+  {"id": 89, "joke": "Why did the stadium get hot after the game? All the fans left."},
+  {"id": 90, "joke": "What do you call a pile of cats? A meowtain."},
+  {"id": 91, "joke": "What do you call a dinosaur with an extensive vocabulary? A thesaurus."},
+  {"id": 92, "joke": "Why was the belt sent to jail? For holding up a pair of pants."},
+  {"id": 93, "joke": "I'm friends with 25 letters of the alphabet. I don't know Y."},
+  {"id": 94, "joke": "A woman in labor suddenly shouted, 'Shouldn't! Wouldn't! Couldn't! Didn't! Can't!' The doctor said, 'Don't worry, those are just contractions.'"},
+  {"id": 95, "joke": "Did you hear about the claustrophobic astronaut? He needed a little space."},
+  {"id": 96, "joke": "What's the difference between a poorly dressed man on a unicycle and a well-dressed man on a bicycle? Attire."},
+  {"id": 97, "joke": "What did one elevator say to the other? I think I'm coming down with something."},
+  {"id": 98, "joke": "What did the ocean say to the beach? Nothing, it just waved."},
+  {"id": 99, "joke": "What did the fish say when it swam into a wall? Dam."},
+  {"id": 100, "joke": "What did one toilet say to another toilet? You look flushed."},
+  {"id": 101, "joke": "What do you call a bear with no teeth? A gummy bear."},
+  {"id": 102, "joke": "What has more lives than a cat? A frog, because it croaks every day."},
+  {"id": 103, "joke": "I used to play piano by ear, but now I use my hands."},
+  {"id": 104, "joke": "Where do fruits go on vacation? Pear-is."},
+  {"id": 105, "joke": "I wouldn't buy anything with velcro. It's a total rip-off."},
+  {"id": 106, "joke": "What do you call a cow with two legs? Lean beef."},
+  {"id": 107, "joke": "Did you hear about the scientist who was lab partners with a pot of boiling water? He had a very heated relationship."},
+  {"id": 108, "joke": "Why don't eggs tell jokes? They might crack up."},
+  {"id": 109, "joke": "The shovel was a ground-breaking invention."},
+  {"id": 110, "joke": "What time did the man go to the dentist? Tooth-hurty."},
+  {"id": 111, "joke": "Did you hear about the guy who invented the knock-knock joke? He won the 'no-bell' prize."},
+  {"id": 112, "joke": "A termite walks into a bar and asks, 'Is the bar tender here?'"},
+  {"id": 113, "joke": "Why did the invisible man turn down the job offer? He couldn't see himself doing it."},
+  {"id": 114, "joke": "What kind of shoes do ninjas wear? Sneakers."},
+  {"id": 115, "joke": "How do you make a tissue dance? Put a little boogie in it."},
+  {"id": 116, "joke": "Why did the tomato turn red? Because it saw the salad dressing."},
+  {"id": 117, "joke": "What do you call a parade of rabbits hopping backwards? A receding hare-line."},
+  {"id": 118, "joke": "What do you call a cow with no legs? Ground beef."},
+  {"id": 119, "joke": "How do you catch a squirrel? Climb a tree and act like a nut."},
+  {"id": 120, "joke": "What's orange and sounds like a parrot? A carrot."},
+  {"id": 121, "joke": "Why can't you hear a psychiatrist using the bathroom? Because the P is silent."},
+  {"id": 122, "joke": "What did one hat say to the other? You stay here. I'll go on ahead."},
+  {"id": 123, "joke": "What did the finger say to the thumb? I'm in glove with you."},
+  {"id": 124, "joke": "What is a computer's favorite snack? Computer chips."},
+  {"id": 125, "joke": "What do you call cheese that isn't yours? Nacho cheese."},
+  {"id": 126, "joke": "Why do cows wear bells? Because their horns don't work."},
+  {"id": 127, "joke": "A book just fell on my head. I only have myshelf to blame."},
+  {"id": 128, "joke": "I ordered a chicken and an egg online. I'll let you know."},
+  {"id": 129, "joke": "What's E.T. short for? Because he's got little legs."},
+  {"id": 130, "joke": "Did you hear about the mathematician who's afraid of negative numbers? He'll stop at nothing to avoid them."},
+  {"id": 131, "joke": "I'm on a seafood diet. Every time I see food, I eat it."},
+  {"id": 132, "joke": "What did one wall say to the other wall? I'll meet you at the corner."},
+  {"id": 133, "joke": "Did you hear about the guy who invented the door knocker? He won the No-bell prize."},
+  {"id": 134, "joke": "I've got a joke about construction, but I'm still working on it."},
+  {"id": 135, "joke": "I would tell you a chemistry joke, but I know I wouldn't get a reaction."},
+  {"id": 136, "joke": "Did you hear about the restaurant called Karma? There's no menu - you get what you deserve."},
+  {"id": 137, "joke": "What do you call a fish wearing a crown? King of the sea."},
+  {"id": 138, "joke": "What do you call a fish with no eyes? Fsh."},
+  {"id": 139, "joke": "What did the grape say when it got stepped on? Nothing, it just let out a little wine."},
+  {"id": 140, "joke": "Want to hear a joke about construction? Nah, I'm still working on it."},
+  {"id": 141, "joke": "What do you call a can opener that doesn't work? A can't opener."},
+  {"id": 142, "joke": "I bought some shoes from a drug dealer. I don't know what he laced them with, but I've been tripping all day."},
+  {"id": 143, "joke": "My wife said I should do lunges to stay in shape. That would be a big step forward."},
+  {"id": 144, "joke": "What's a vampire's favorite fruit? A neck-tarine."},
+  {"id": 145, "joke": "My dad unfortunately passed away when we couldn't remember his blood type. His last words were 'Be positive.'"},
+  {"id": 146, "joke": "Why did the old man fall in the well? Because he couldn't see that well."},
+  {"id": 147, "joke": "What do you call a sleeping bull? A bulldozer."},
+  {"id": 148, "joke": "Did you hear about the guy whose whole left side was cut off? He's all right now."},
+  {"id": 149, "joke": "I don't like elevator jokes. They work on so many levels."},
+  {"id": 150, "joke": "My friend drove his expensive car into a tree and found out how the Mercedes bends."},
+  {"id": 151, "joke": "I used to hate facial hair, but then it grew on me."},
+  {"id": 152, "joke": "I'm so good at sleeping I can do it with my eyes closed."},
+  {"id": 153, "joke": "Why did the coffee file a police report? It got mugged."},
+  {"id": 154, "joke": "Why don't oysters donate to charity? Because they're shellfish."},
+  {"id": 155, "joke": "What happens when a strawberry gets run over crossing the street? Traffic jam."},
+  {"id": 156, "joke": "Why couldn't the leopard play hide and seek? Because he was always spotted."},
+  {"id": 157, "joke": "Where do you learn to make a banana split? Sundae school."},
+  {"id": 158, "joke": "How do astronomers organize a party? They planet."},
+  {"id": 159, "joke": "What's the best way to watch a fly fishing tournament? Live stream."},
+  {"id": 160, "joke": "Why are graveyards so noisy? Because of all the coffin."},
+  {"id": 161, "joke": "What do you call a cow with a twitch? Beef jerky."},
+  {"id": 162, "joke": "I told my doctor that I broke my arm in two places. He told me to stop going to those places."},
+  {"id": 163, "joke": "Why can't you give Elsa a balloon? Because she will let it go."},
+  {"id": 164, "joke": "What musical instrument is found in the bathroom? A tuba toothpaste."},
+  {"id": 165, "joke": "What do you get when you cross a snowman with a vampire? Frostbite."},
+  {"id": 166, "joke": "What do sprinters eat before a race? Nothing, they fast."},
+  {"id": 167, "joke": "My wife told me to take the spider out instead of killing it. We went out, had some drinks. Nice guy. Wants to be a web designer."},
+  {"id": 168, "joke": "What kind of tree fits in your hand? A palm tree."},
+  {"id": 169, "joke": "What did the digital clock say to its mother? Look, no hands!"},
+  {"id": 170, "joke": "Did you hear about the restaurant on the moon? Great food, no atmosphere."},
+  {"id": 171, "joke": "What do you call two monkeys that share an Amazon account? Prime mates."},
+  {"id": 172, "joke": "I found a wooden shoe in my toilet today. It was clogged."},
+  {"id": 173, "joke": "What's a pirate's favorite letter? You'd think it's R, but his first love is the C."},
+  {"id": 174, "joke": "What do you call a pony with a sore throat? A little horse."},
+  {"id": 175, "joke": "What do you call a man with a rubber toe? Roberto."},
+  {"id": 176, "joke": "Where do boats go when they're sick? To the dock."},
+  {"id": 177, "joke": "What do you call a boomerang that doesn't come back? A stick."},
+  {"id": 178, "joke": "What's brown and sounds like a bell? Dung!"},
+  {"id": 179, "joke": "I know a lot of jokes about unemployed people but none of them work."},
+  {"id": 180, "joke": "How do you make a Swiss roll? Push him down a mountain."},
+  {"id": 181, "joke": "I don't play soccer because I enjoy the sport. I'm just doing it for kicks."},
+  {"id": 182, "joke": "How do trees access the internet? They log in."}
+]
 const swiperWrapper = document.querySelector('.swiper-wrapper');
 portfolioItems.forEach(item => {
   const slide = document.createElement('div');
@@ -501,6 +638,7 @@ let brickIndex = 0;
 let buildVersion = 0;
 let bricksPlaced = 0;
 let shouldTellJoke = false;
+let lastPlacedBrickIndex = -1; // Track the last brick that was actually placed
 
 // Brick dimensions and layout
 const brickWidth = 50;
@@ -633,6 +771,11 @@ function moveTo(targetX, targetBottom, callback, version) {
 function tellJoke(version) {
   if (version !== buildVersion) return;
   
+  // Store the CURRENT brick index we're working on
+  // This is the brick we need to continue with after the joke
+  const continueBrickIndex = brickIndex;
+  console.log('Telling joke, will continue at brick index:', continueBrickIndex);
+  
   // Go to center stage to tell the joke
   const centerX = window.innerWidth / 2 - 40;
   const currentBottom = parseInt(man.style.bottom) || 0;
@@ -641,10 +784,15 @@ function tellJoke(version) {
     if (version !== buildVersion) return;
     
     // Get a random joke from the dadJokes array
-    // If the array is empty (not loaded yet), use a fallback joke
-    const randomJoke = dadJokes.length > 0 
-      ? dadJokes[Math.floor(Math.random() * dadJokes.length)]
-      : { id: 0, joke: "Why don't scientists trust atoms? Because they make up everything!" };
+    let randomJoke;
+    if (dadJokes && dadJokes.length > 0) {
+      const randomIndex = Math.floor(Math.random() * dadJokes.length);
+      randomJoke = dadJokes[randomIndex];
+      console.log('Selected joke:', randomJoke.joke, '(from a pool of', dadJokes.length, 'jokes)');
+    } else {
+      randomJoke = { id: 0, joke: "Why don't scientists trust atoms? Because they make up everything!" };
+      console.log('Using fallback joke because dadJokes array is empty or undefined');
+    }
     
     // Position speech bubble much higher to not obscure the man's face
     speechBubble.textContent = randomJoke.joke;
@@ -703,8 +851,9 @@ function tellJoke(version) {
           speechBubble.style.display = 'none';
           man.src = getRandomEmotion('neutral');
           
-          // Go back to placing bricks
-          placeBrick(brickIndex, version);
+          // Continue building from where we left off
+          console.log('Joke finished, continuing at brick index:', continueBrickIndex);
+          placeBrick(continueBrickIndex, version);
         }
       }, 500);
     }, SPEECH_BUBBLE_DURATION - 3000);
@@ -715,6 +864,8 @@ function tellJoke(version) {
 function placeBrick(brickIndex, version) {
   if (version !== buildVersion) return;
   if (brickIndex >= bricks.length) return;
+  
+  console.log('Placing brick:', brickIndex);
   
   // Check if it's time to tell a joke (increased frequency)
   if (Math.random() < 1/JOKE_FREQUENCY && bricksPlaced > 0) {
@@ -777,6 +928,13 @@ function placeBrick(brickIndex, version) {
             
             // Update counters
             bricksPlaced++;
+            lastPlacedBrickIndex = brickIndex; // Record the last placed brick
+            
+            // Now increment the brick index for the next brick
+            const nextBrickIndex = brickIndex + 1;
+            console.log('Placed brick:', brickIndex, 'Next brick will be:', nextBrickIndex);
+            brickIndex = nextBrickIndex;
+            
             man.src = getRandomEmotion('brickDropped');
             
             // Check if a row is completed
@@ -813,9 +971,9 @@ function placeBrick(brickIndex, version) {
                         if (version !== buildVersion) return;
                         man.src = getRandomEmotion('buildStart');
                         
-                        // Continue with the next brick
-                        if (brickIndex < bricks.length - 1) {
-                          placeBrick(brickIndex + 1, version);
+                        // Continue with the next brick at the correctly incremented index
+                        if (brickIndex < bricks.length) {
+                          placeBrick(brickIndex, version);
                         }
                       }, version);
                     }
@@ -831,8 +989,9 @@ function placeBrick(brickIndex, version) {
               }
             } else {
               // Continue with the next brick if row isn't complete
-              if (brickIndex < bricks.length - 1) {
-                placeBrick(brickIndex + 1, version);
+              // The index has already been incremented
+              if (brickIndex < bricks.length) {
+                placeBrick(brickIndex, version);
               }
             }
           }, ACTION_DELAY);
