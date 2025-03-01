@@ -174,7 +174,8 @@ const portfolioItems = [
   { title: 'ElodieBook_One', url: 'https://mathew-harvey.github.io/ElodieBook_One/', imageUrl: './images/ebook1.png' },
   { title: 'The BodyweightGym', url: 'https://mathewharvey.wixsite.com/mysite/about', imageUrl: './images/bwgSite.png' },
   { title: 'Life Tracker', url: 'https://zero3-mini-high-lifetracker.onrender.com/', imageUrl: './images/lifeTracker.png' },
-
+  { title: 'AI Gym', url: 'https://ai-gym-cf4n.onrender.com', imageUrl: './images/aiGym.png' },
+  
 ];
 
 // Dad jokes array - will be populated from JSON
