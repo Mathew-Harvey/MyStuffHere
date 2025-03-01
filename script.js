@@ -566,37 +566,38 @@ const assets = {
   reaching_up_var4: 'pixel_art_frames/man_reaching_up_var4.png'
 };
 
-// Helper function to get a random variant of an asset
+// **Helper Functions**
+
+// Get a random variant of an asset
 function getRandomVariant(baseAssetName) {
   const variants = [];
   const baseKey = baseAssetName.split('_var')[0];
-  
-  // Find all variants of this asset
   for (const key in assets) {
     if (key.startsWith(baseKey)) {
       variants.push(assets[key]);
     }
   }
-  
-  // Return a random variant
   return variants[Math.floor(Math.random() * variants.length)];
 }
 
-  // Create and position brick pile
+
+// **Setup Elements**
+
+// Brick pile
 const brickPile = document.createElement('div');
 brickPile.id = 'brick-pile';
 brickPile.style.position = 'absolute';
 brickPile.style.left = '20px';
 brickPile.style.bottom = '0px';
-brickPile.style.width = '180px';  // Increased size further
-brickPile.style.height = '120px';  // Increased size further
+brickPile.style.width = '180px';
+brickPile.style.height = '120px';
 brickPile.style.backgroundImage = "url('pixel_art_frames/brick_pile.png')";
 brickPile.style.backgroundSize = 'contain';
 brickPile.style.backgroundRepeat = 'no-repeat';
 brickPile.style.zIndex = '5';
 document.body.appendChild(brickPile);
 
-  // Speech bubble for jokes
+// Speech bubble
 const speechBubble = document.createElement('div');
 speechBubble.id = 'speech-bubble';
 speechBubble.style.position = 'absolute';
@@ -611,7 +612,7 @@ speechBubble.style.boxShadow = '3px 3px 8px rgba(0,0,0,0.3)';
 speechBubble.style.transform = 'translateY(-20px)';
 document.body.appendChild(speechBubble);
 
-  // Create a pointer for the speech bubble
+// Speech bubble pointer
 const speechPointer = document.createElement('div');
 speechPointer.style.position = 'absolute';
 speechPointer.style.width = '24px';
@@ -626,7 +627,7 @@ speechPointer.style.marginLeft = '-12px';
 speechPointer.style.transform = 'rotate(-45deg)';
 speechBubble.appendChild(speechPointer);
 
-// Initialize man and wall elements
+// Initialize man and wall
 const man = document.getElementById('man');
 const wall = document.getElementById('wall');
 man.style.left = '0px';
@@ -638,16 +639,14 @@ let brickIndex = 0;
 let buildVersion = 0;
 let bricksPlaced = 0;
 let shouldTellJoke = false;
-let lastPlacedBrickIndex = -1; // Track the last brick that was actually placed
+let lastPlacedBrickIndex = -1;
 
-// Brick dimensions and layout
+// **Brick Grid Setup**
 const brickWidth = 50;
 const brickHeight = 25;
 let numCols = Math.ceil(window.innerWidth / brickWidth);
 let numRows = Math.ceil(window.innerHeight / brickHeight);
 const bricks = [];
-
-// Initialize bricks grid
 for (let row = 0; row < numRows; row++) {
   const offset = (row % 2 === 0) ? 0 : brickWidth / 2;
   for (let col = 0; col < numCols; col++) {
@@ -657,7 +656,7 @@ for (let row = 0; row < numRows; row++) {
   }
 }
 
-// Random emotion generator based on context
+// **Emotion Generator**
 function getRandomEmotion(context) {
   const emotions = {
     'neutral': ['standing_neutral', 'standing_neutral_var1', 'standing_neutral_var2', 'standing_neutral_var3', 'standing_neutral_var4'],
@@ -670,9 +669,7 @@ function getRandomEmotion(context) {
     'surprised': ['cheering_var0', 'cheering_var1', 'cheering_var2', 'cheering_var3', 'cheering_var4'],
     'reaching': ['reaching_up_var0', 'reaching_up_var1', 'reaching_up_var2', 'reaching_up_var3', 'reaching_up_var4']
   };
-  
   let category;
-  
   switch (context) {
     case 'buildStart':
       category = Math.random() < 0.7 ? 'neutral' : (Math.random() < 0.5 ? 'happy' : 'frustrated');
@@ -684,7 +681,6 @@ function getRandomEmotion(context) {
       category = Math.random() < 0.7 ? 'happy' : (Math.random() < 0.5 ? 'satisfied' : 'tired');
       break;
     case 'brickDropped':
-      // Rare chance of a random emotion
       if (Math.random() < 0.05) {
         const allCategories = Object.keys(emotions);
         category = allCategories[Math.floor(Math.random() * allCategories.length)];
@@ -701,13 +697,12 @@ function getRandomEmotion(context) {
     default:
       category = 'neutral';
   }
-  
   const emotionList = emotions[category];
   const selectedEmotion = emotionList[Math.floor(Math.random() * emotionList.length)];
   return assets[selectedEmotion];
 }
 
-// Walking animation with random variants
+// **Walking Animation**
 function animateWalk() {
   let frame = 0;
   const walkingAssets = [
@@ -717,17 +712,14 @@ function animateWalk() {
     [assets.walking1_var3, assets.walking2_var3],
     [assets.walking1_var4, assets.walking2_var4]
   ];
-  
-  // Choose a random walking style
   const walkStyle = Math.floor(Math.random() * walkingAssets.length);
-  
   return setInterval(() => {
     man.src = walkingAssets[walkStyle][frame % 2];
     frame++;
   }, 200);
 }
 
-// Move the man character to a specific position
+// **Move To Position**
 function moveTo(targetX, targetBottom, callback, version) {
   const walkInterval = animateWalk();
   const moveInterval = setInterval(() => {
@@ -736,8 +728,6 @@ function moveTo(targetX, targetBottom, callback, version) {
       clearInterval(walkInterval);
       return;
     }
-    
-    // Move horizontally
     if (manX < targetX) {
       manX += WALK_SPEED;
       if (manX > targetX) manX = targetX;
@@ -746,8 +736,6 @@ function moveTo(targetX, targetBottom, callback, version) {
       if (manX < targetX) manX = targetX;
     }
     man.style.left = `${manX}px`;
-    
-    // Move vertically once horizontal position is reached
     if (manX === targetX) {
       const currentBottom = parseInt(man.style.bottom) || 0;
       if (currentBottom < targetBottom) {
@@ -756,8 +744,6 @@ function moveTo(targetX, targetBottom, callback, version) {
         man.style.bottom = `${Math.max(currentBottom - WALK_SPEED, targetBottom)}px`;
       }
     }
-    
-    // Check if the destination is reached
     if (manX === targetX && parseInt(man.style.bottom || '0') === targetBottom) {
       clearInterval(moveInterval);
       clearInterval(walkInterval);
@@ -767,91 +753,52 @@ function moveTo(targetX, targetBottom, callback, version) {
   }, ANIMATION_FRAME_RATE);
 }
 
-// Display a joke in the speech bubble with emotion sequence
-function tellJoke(version) {
+// **Tell a Joke**
+function tellJoke(currentBrickIndex, version) {
   if (version !== buildVersion) return;
-  
-  // Store the CURRENT brick index we're working on
-  // This is the brick we need to continue with after the joke
-  const continueBrickIndex = brickIndex;
+  const continueBrickIndex = currentBrickIndex;
   console.log('Telling joke, will continue at brick index:', continueBrickIndex);
-  
-  // Go to center stage to tell the joke
   const centerX = window.innerWidth / 2 - 40;
   const currentBottom = parseInt(man.style.bottom) || 0;
-  
   moveTo(centerX, currentBottom, () => {
     if (version !== buildVersion) return;
-    
-    // Get a random joke from the dadJokes array
-    let randomJoke;
-    if (dadJokes && dadJokes.length > 0) {
-      const randomIndex = Math.floor(Math.random() * dadJokes.length);
-      randomJoke = dadJokes[randomIndex];
-      console.log('Selected joke:', randomJoke.joke, '(from a pool of', dadJokes.length, 'jokes)');
-    } else {
-      randomJoke = { id: 0, joke: "Why don't scientists trust atoms? Because they make up everything!" };
-      console.log('Using fallback joke because dadJokes array is empty or undefined');
-    }
-    
-    // Position speech bubble much higher to not obscure the man's face
+    const randomJoke = dadJokes[Math.floor(Math.random() * dadJokes.length)] || { joke: "Fallback joke!" };
     speechBubble.textContent = randomJoke.joke;
     speechBubble.style.display = 'block';
     speechBubble.style.left = `${centerX - 100}px`;
-    speechBubble.style.bottom = `${currentBottom + 200}px`;  // Positioned much higher
-    
-    // Sequence of emotions for telling joke
-    const emotions = [
-      'standing_neutral',
-      'standing_happy',
-      'standing_satisfied'
-    ];
-    
+    speechBubble.style.bottom = `${currentBottom + 200}px`;
+    const emotions = ['standing_neutral', 'standing_happy', 'standing_satisfied'];
     let emotionIndex = 0;
     const emotionInterval = setInterval(() => {
       if (version !== buildVersion) {
         clearInterval(emotionInterval);
         return;
       }
-      
       man.src = getRandomVariant(emotions[emotionIndex]);
       emotionIndex = (emotionIndex + 1) % emotions.length;
     }, 800);
-    
-    // After joke is told, make the man laugh at his own joke
     setTimeout(() => {
       if (version !== buildVersion) {
         clearInterval(emotionInterval);
         return;
       }
-      
       clearInterval(emotionInterval);
-      
-      // Laughing sequence
       let laughCount = 0;
       const laughInterval = setInterval(() => {
         if (version !== buildVersion) {
           clearInterval(laughInterval);
           return;
         }
-        
-        // Alternate between happy and surprised for laughing effect
         if (laughCount % 2 === 0) {
           man.src = getRandomVariant('standing_happy');
         } else {
           man.src = getRandomVariant('cheering_var');
         }
-        
         laughCount++;
-        
         if (laughCount >= 6) {
           clearInterval(laughInterval);
-          
-          // Hide speech bubble and return to normal
           speechBubble.style.display = 'none';
           man.src = getRandomEmotion('neutral');
-          
-          // Continue building from where we left off
           console.log('Joke finished, continuing at brick index:', continueBrickIndex);
           placeBrick(continueBrickIndex, version);
         }
@@ -860,118 +807,70 @@ function tellJoke(version) {
   }, version);
 }
 
-// Core brick placement function
-function placeBrick(brickIndex, version) {
-  if (version !== buildVersion) return;
-  if (brickIndex >= bricks.length) return;
-  
-  console.log('Placing brick:', brickIndex);
-  
-  // Check if it's time to tell a joke (increased frequency)
+// **Place a Brick**
+function placeBrick(currentBrickIndex, version) {
+  if (version !== buildVersion || currentBrickIndex >= bricks.length) return;
+  console.log('Placing brick:', currentBrickIndex);
   if (Math.random() < 1/JOKE_FREQUENCY && bricksPlaced > 0) {
     shouldTellJoke = true;
   }
-  
   if (shouldTellJoke) {
     shouldTellJoke = false;
-    tellJoke(version);
+    tellJoke(currentBrickIndex, version);
     return;
   }
-  
-  const brick = bricks[brickIndex];
+  const brick = bricks[currentBrickIndex];
   const startBottom = currentRow === 0 ? 0 : currentRow * brickHeight;
   const maxBottom = window.innerHeight - 240;
   const adjustedStartBottom = Math.min(startBottom, maxBottom);
-  
-  // First go to the brick pile
-  const brickPileX = 110;  // Adjusted for larger brick pile
-  const brickPileBottom = 0; 
-  
+  const brickPileX = 110;
+  const brickPileBottom = 0;
   moveTo(brickPileX, brickPileBottom, () => {
     if (version !== buildVersion) return;
-    
-    // Bend down to pick up a brick
     man.src = getRandomVariant('bending_var');
-    
     setTimeout(() => {
       if (version !== buildVersion) return;
-      
-      // Hold the brick
       man.src = getRandomVariant('holding_var');
-      
       setTimeout(() => {
         if (version !== buildVersion) return;
-        
-        // Move to the placement position
         const placeBottom = brick.row === 0 ? 0 : brick.row * brickHeight;
         const adjustedPlaceBottom = Math.min(placeBottom, maxBottom);
-        
         moveTo(brick.left, adjustedPlaceBottom, () => {
           if (version !== buildVersion) return;
-          
-          // Use reaching up animation if placing higher
-          if (placeBottom > 50) {
-            man.src = getRandomEmotion('reachingUp');
-          } else {
-            man.src = getRandomVariant('dropping_var');
-          }
-          
+          man.src = placeBottom > 50 ? getRandomEmotion('reachingUp') : getRandomVariant('dropping_var');
           setTimeout(() => {
             if (version !== buildVersion) return;
-            
-            // Create and place the brick
             const brickDiv = document.createElement('div');
             brickDiv.className = 'brick';
             brickDiv.style.left = `${Math.min(brick.left, window.innerWidth - 50)}px`;
             brickDiv.style.bottom = `${adjustedPlaceBottom}px`;
             wall.appendChild(brickDiv);
-            
-            // Update counters
             bricksPlaced++;
-            lastPlacedBrickIndex = brickIndex; // Record the last placed brick
-            
-            // Now increment the brick index for the next brick
-            const nextBrickIndex = brickIndex + 1;
-            console.log('Placed brick:', brickIndex, 'Next brick will be:', nextBrickIndex);
-            brickIndex = nextBrickIndex;
-            
+            lastPlacedBrickIndex = currentBrickIndex;
+            brickIndex = currentBrickIndex + 1;
+            console.log('Placed brick:', currentBrickIndex, 'Next brick will be:', brickIndex);
             man.src = getRandomEmotion('brickDropped');
-            
-            // Check if a row is completed
             if (brick.col === numCols - 1) {
               const completedRows = brick.row + 1;
               wall.style.height = `${completedRows * brickHeight}px`;
-              
-              // Move to center to celebrate
               const centerX = window.innerWidth / 2 - 40;
               moveTo(centerX, adjustedStartBottom, () => {
                 if (version !== buildVersion) return;
-                
-                // Celebrate with happy emotions
                 let emoteCount = 0;
                 function showRowCompleteEmotion() {
                   if (version !== buildVersion) return;
-                  
-                  // Show a variety of happy emotions
                   man.src = getRandomEmotion('rowComplete');
-                  
                   setTimeout(() => {
                     if (version !== buildVersion) return;
                     emoteCount++;
-                    
                     if (emoteCount < 2) {
                       showRowCompleteEmotion();
                     } else {
-                      // Update current row and continue building
                       currentRow = completedRows - 1;
                       const climbBottom = Math.min(currentRow * brickHeight, maxBottom);
-                      
-                      // Move to the new row position
                       moveTo(centerX, climbBottom, () => {
                         if (version !== buildVersion) return;
                         man.src = getRandomEmotion('buildStart');
-                        
-                        // Continue with the next brick at the correctly incremented index
                         if (brickIndex < bricks.length) {
                           placeBrick(brickIndex, version);
                         }
@@ -979,20 +878,13 @@ function placeBrick(brickIndex, version) {
                     }
                   }, CHEER_DELAY);
                 }
-                
                 showRowCompleteEmotion();
               }, version);
-              
-              // Show tear down button after enough rows
               if (completedRows >= 5 && !document.getElementById('tear-down-button')) {
                 showTearDownButton();
               }
-            } else {
-              // Continue with the next brick if row isn't complete
-              // The index has already been incremented
-              if (brickIndex < bricks.length) {
-                placeBrick(brickIndex, version);
-              }
+            } else if (brickIndex < bricks.length) {
+              placeBrick(brickIndex, version);
             }
           }, ACTION_DELAY);
         }, version);
@@ -1001,7 +893,7 @@ function placeBrick(brickIndex, version) {
   }, version);
 }
 
-// Create and display the tear down button
+// **Show Tear Down Button**
 function showTearDownButton() {
   const button = document.createElement('button');
   button.id = 'tear-down-button';
@@ -1020,28 +912,22 @@ function showTearDownButton() {
   button.style.borderRadius = '8px';
   button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
   document.body.appendChild(button);
-  
-  // Add hover effects
   button.addEventListener('mouseover', () => {
     button.style.backgroundColor = '#ff5252';
     button.style.transform = 'translate(-50%, -50%) scale(1.05)';
   });
-  
   button.addEventListener('mouseout', () => {
     button.style.backgroundColor = '#ff6b6b';
     button.style.transform = 'translate(-50%, -50%)';
   });
-  
   button.addEventListener('click', tearDownWall);
 }
 
-// Tear down the wall and reset
+// **Tear Down Wall**
 function tearDownWall() {
   buildVersion++;
   const v = buildVersion;
   bricksPlaced = 0;
-  
-  // Create debris effects
   const numDebris = 40;
   for (let i = 0; i < numDebris; i++) {
     const debris = document.createElement('div');
@@ -1052,65 +938,44 @@ function tearDownWall() {
     debris.style.setProperty('--dy', (Math.random() * 1).toFixed(2));
     document.body.appendChild(debris);
   }
-  
-  // Remove debris after animation
   setTimeout(() => {
     document.querySelectorAll('.debris').forEach(debris => debris.remove());
   }, 1500);
-  
-  // Clear existing bricks and wall
   document.querySelectorAll('.brick').forEach(brick => brick.remove());
   wall.innerHTML = '';
   wall.style.height = '0px';
   wall.style.backgroundColor = 'transparent';
-  
-  // Remove tear down button
   const btn = document.getElementById('tear-down-button');
   if (btn) document.body.removeChild(btn);
-  
-  // Hide any visible speech bubble
   speechBubble.style.display = 'none';
-  
-  // Reset man position
   man.style.left = '0px';
   man.style.bottom = '0px';
   manX = 0;
   currentRow = 0;
   brickIndex = 0;
-  
-  // Show a celebration animation before starting again
   let emoteCount = 0;
   function showHappyEmotion() {
     if (v !== buildVersion) return;
-    
-    // Display various happy emotions
     const emotions = ['standing_happy', 'cheering_var0', 'cheering_var1', 'cheering_var2', 'standing_satisfied'];
     man.src = assets[emotions[emoteCount % emotions.length]];
-    
     setTimeout(() => {
       if (v !== buildVersion) return;
       emoteCount++;
-      
       if (emoteCount < 3) {
         showHappyEmotion();
       } else {
-        // Return to the neutral state and start building again
         man.src = getRandomEmotion('neutral');
         placeBrick(0, buildVersion);
       }
     }, CHEER_DELAY);
   }
-  
   showHappyEmotion();
 }
 
-// Handle window resize
+// **Handle Window Resize**
 window.addEventListener('resize', () => {
-  // Recalculate grid dimensions
   numCols = Math.ceil(window.innerWidth / brickWidth);
   numRows = Math.ceil(window.innerHeight / brickHeight);
-  
-  // Rebuild the bricks array
   bricks.length = 0;
   for (let row = 0; row < numRows; row++) {
     const offset = (row % 2 === 0) ? 0 : brickWidth / 2;
@@ -1120,72 +985,8 @@ window.addEventListener('resize', () => {
       bricks.push({ row, col, left, bottom });
     }
   }
-  
-  // Reset and restart the building process
   tearDownWall();
 });
 
-// Add some CSS for the speech bubble
-const style = document.createElement('style');
-style.textContent = `
-  #brick-pile {
-    transition: transform 0.3s ease;
-  }
-  #brick-pile:hover {
-    transform: scale(1.1);
-  }
-  #speech-bubble {
-    font-family: 'Comic Sans MS', cursive, sans-serif;
-    font-size: 16px;
-    animation: bubble-appear 0.5s ease;
-    color: #222;
-    font-weight: 600;
-    text-align: center;
-  }
-  @keyframes bubble-appear {
-    0% { transform: translateY(50px) scale(0.8); opacity: 0; }
-    50% { transform: translateY(-25px) scale(1.05); opacity: 0.9; }
-    70% { transform: translateY(-20px) scale(0.95); opacity: 1; }
-    100% { transform: translateY(-20px) scale(1); opacity: 1; }
-  }
-  
-  /* Add a long connecting line from speech bubble to character */
-  #speech-bubble::after {
-    content: '';
-    position: absolute;
-    width: 3px;
-    height: 70px;
-    background: black;
-    bottom: -70px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .brick {
-    position: absolute;
-    width: ${brickWidth}px;
-    height: ${brickHeight}px;
-    background-color: #b22222;
-    border: 1px solid #8b0000;
-    animation: appear 0.3s ease;
-  }
-  @keyframes appear {
-    0% { transform: scale(0); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  .debris {
-    position: absolute;
-    width: ${brickWidth / 3}px;
-    height: ${brickHeight / 3}px;
-    background-color: #b22222;
-    border: 1px solid #8b0000;
-    animation: fly 1.5s ease-out forwards;
-  }
-  @keyframes fly {
-    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-    100% { transform: translate(calc(var(--dx) * 400px), calc(var(--dy) * -300px)) rotate(720deg); opacity: 0; }
-  }
-`;
-document.head.appendChild(style);
-
-// Start the building process
+// **Start Building**
 placeBrick(0, buildVersion);
